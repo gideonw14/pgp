@@ -3,6 +3,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <openssl/sha.h>
+#include <string.h>
+#include <fstream>
 using namespace std;
 
 int main (){
@@ -16,7 +19,7 @@ int main (){
   string alice_encrypt_fn;
   string bob_decrypt_fn;
   vector<string> inputs;
-
+  /*
   cout << "Enter the name of the file that contains Alice’s public-private key pair:" << endl;
   cin >> alice_keys_fn;
   inputs.push_back(alice_keys_fn);
@@ -43,6 +46,31 @@ int main (){
     cout << inputs[i] << " ";
   }
   cout << endl;
+  */
+  ifstream plaintext_f("example_plaintext.txt");
+  string plaintext;
+  string file_input;
+  if(plaintext_f){
+    while(getline(plaintext_f, file_input)){
+      plaintext.append(file_input);
+    }
+  }
+  plaintext_f.close();
+  plaintext.append("\n");
+  cout << "plaintext:" << endl;
+  cout << plaintext << endl;
+  unsigned char digest[SHA512_DIGEST_LENGTH];
+
+  SHA512_CTX ctx;
+  SHA512_Init(&ctx);
+  SHA512_Update(&ctx, plaintext.c_str(), plaintext.size());
+  SHA512_Final(digest, &ctx);
+
+  char mdString[SHA512_DIGEST_LENGTH*2+1];
+  for (int i = 0; i < SHA512_DIGEST_LENGTH; i++)
+      sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);
+
+  printf("SHA512 digest: %s\n", mdString);
 
   return 0;
 }
