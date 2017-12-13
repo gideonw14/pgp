@@ -18,3 +18,6 @@ clean:
 	rm ${ALICE_PR_KEY};
 	#rm ${ALICE_PU_KEY};
 	rm ${OUTPUT};
+	find . -name '*.txt' ! -name 'example_plaintext.txt' -delete;
+	rm *.pem;
+	rm *.pub;
