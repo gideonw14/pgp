@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <gmp.h>
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -8,6 +9,9 @@
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+#include <inttypes.h>
 #include <string.h>
 #include <fstream>
 using namespace std;
@@ -78,7 +82,6 @@ string get_string(unsigned char * stuff){
 }
 
 int main (){
-
   int rc = 1;
   //fn stands for file name
   string alice_keys_fn = "alice_key.pem";
@@ -173,8 +176,8 @@ int main (){
   decrypted_str = get_string(decrypted);
   if(DEBUG) cout << "Heres the decrypted string: " << endl << decrypted_str << endl;
   if(DEBUG){
-    if(decrypted_str == digest_str) cout << "The strings match!" << endl;
-    else cout << ":( the strings do not match." << endl;
+    if(decrypted_str == digest_str) cout << "The strings match!" << endl << endl;
+    else cout << ":( the strings do not match." << endl << endl;
   }
 
   ofstream bob_verify(bob_verify_fn);
@@ -185,6 +188,63 @@ int main (){
     cout << "Problem opening " << bob_verify_fn << endl;
   }
   bob_verify.close();
+
+  //-------------------
+  // ALICE - MESSAGE ENCRYPTION
+  //-------------------
+  const int key_size = 16;
+  const int aes_key_size = key_size*8;
+  const int rsa_key_size = key_size*4;
+  unsigned char key[key_size];
+  unsigned char encrypted_msg[plaintext.size()];
+  unsigned char *plaintext_arr = (unsigned char *)plaintext.c_str();
+  string encrypted_msg_str;
+  RAND_bytes(key, sizeof key);
+  AES_KEY aes_key;
+  AES_set_encrypt_key((const unsigned char *) key, aes_key_size, &aes_key);
+  AES_set_decrypt_key((const unsigned char *) key, aes_key_size, &aes_key);
+  string key_str = get_string(key);
+  if(DEBUG) cout << "Session key:" << endl << key_str << endl << endl;
+  //if(DEBUG) cout << "Size of session key: " << sizeof key << endl;
+  if(DEBUG){
+    string test;
+    test = get_string(plaintext_arr);
+    cout << "testing: " << test << endl << endl;
+  }
+
+  AES_encrypt((const unsigned char *)plaintext_arr, encrypted_msg, (const AES_KEY *) &aes_key);
+  encrypted_msg_str = get_string(encrypted_msg);
+  if(DEBUG) cout << "Encrypted message:" << endl << encrypted_msg_str << endl << endl;
+
+  signiture_len = RSA_public_encrypt(rsa_key_size, key, signiture, bob_keys, RSA_PKCS1_PADDING);
+  signiture_str = get_string(signiture);
+  if(DEBUG) cout << "Encrypted session key:" << endl << signiture_str << endl << endl;
+  //if(DEBUG) cout << "Encrypted len: " << signiture_len << endl;
+
+  ofstream alice_encrypted(alice_encrypt_fn);
+  if(alice_encrypted){
+    alice_encrypted << encrypted_msg_str << "\n" << signiture_str << "\n";
+  }
+  else cout << "Error opening " << alice_encrypt_fn << endl;
+  alice_encrypted.close();
+  //-------------------
+  // BOB - MESSAGE DECRYPTION
+  //-------------------
+  unsigned char decrypted_msg[plaintext.size()];
+  string decrypted_msg_str;
+
+  decrypted_len = RSA_private_decrypt(signiture_len, signiture, decrypted, bob_keys, RSA_PKCS1_PADDING);
+  decrypted_str = get_string(decrypted);
+  if(DEBUG) cout << "Bob's decrypted session key:" << endl << decrypted_str << endl;
+  if(DEBUG){
+    string msg;
+    decrypted_str == key_str ? msg="Same key!" : msg="Different key...";
+    cout << msg << endl << endl;
+  }
+
+  AES_decrypt((const unsigned char *)encrypted_msg, decrypted_msg, (const AES_KEY *) &aes_key);
+  decrypted_msg_str = get_string(decrypted_msg);
+  if(DEBUG) cout << "The decrypted message:" << endl << decrypted_msg_str << endl << endl;
 
   RSA_free(alice_keys);
   RSA_free(bob_keys);
