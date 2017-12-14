@@ -1,8 +1,11 @@
 # pgp
 Programmer: Gideon Walker 12450191
+
 Class: CS 3800 Computer Security
+
 Assignment: Final Project - Implementing Authentication and
   Confidentiality Services in OpenPGP
+  
 Date: 12/15/17
 
 Purpose of files:
