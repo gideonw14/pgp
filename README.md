@@ -1,5 +1,5 @@
 # pgp
-Programmer: Gideon Walker 12450191
+Programmer: Gideon Walker
 
 Class: CS 3800 Computer Security
 
